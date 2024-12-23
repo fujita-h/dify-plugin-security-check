@@ -224,7 +224,28 @@ class DifyPluginSecurityCheckEndpoint(Endpoint):
             # Invoke params
             yield "<h3>Invoke params</h3>"
             yield "<div style='margin: 10px; border: 1px solid black; padding: 10px'>"
-            yield f"Request: {r} <br>"
+            yield f"Request remote_addr: {r.remote_addr} <br>"
+            yield f"Request remote_user: {r.remote_user} <br>"
+            yield f"Request scheme: {r.scheme} <br>"
+            yield f"Request full_path: {r.full_path} <br>"
+            yield f"Request host: {r.host} <br>"
+            yield f"Request host_url: {r.host_url} <br>"
+            yield f"Request path: {r.path} <br>"
+            yield f"Request method: {r.method} <br>"
+            yield f"Request content_length: {r.content_length} <br>"
+            yield f"Request content_type: {r.content_type} <br>"
+            yield f"Request data: {r.data} <br>"
+            yield f"Request form: {r.form} <br>"
+            yield f"Request args: {r.args} <br>"
+            yield f"Request values: {r.values} <br>"
+            yield f"Request files: {r.files} <br>"
+            yield f"Request cookies: {r.cookies} <br>"
+            yield f"Request headers: {r.headers} <br>"
+            yield f"Request environ: {r.environ} <br>"
+            yield f"Request script_root: {r.script_root} <br>"
+            yield f"Request url: {r.url} <br>"
+            yield f"Request base_url: {r.base_url} <br>"
+            yield f"Request url_root: {r.url_root} <br>"
             yield "</div>"
             yield "<div style='margin: 10px; border: 1px solid black; padding: 10px'>"
             yield f"Values: {values} <br>"
@@ -237,7 +258,9 @@ class DifyPluginSecurityCheckEndpoint(Endpoint):
             yield "<h2>Processes</h2>"
             yield "<p style='color: darkgray'>Checking processes by ps command...</p>"
             try:
-                processes = subprocess.check_output(["ps", "aux"])
+                processes = []
+                ps = subprocess.check_output(["ps", "aux"]).decode()
+                processes = ps.split("\n")
             except Exception as e:
                 yield f"<p style='color: red'>Error: {e}</p>"
                 processes = None
@@ -290,6 +313,7 @@ class DifyPluginSecurityCheckEndpoint(Endpoint):
             # Check AWS
             yield "<h2>AWS credentials</h2>"
             sts = boto3.client("sts")
+            arn = None
             try:
                 yield "<p style='color: darkgray'>Checking AWS credentials...</p>"
                 caller_identity = sts.get_caller_identity()
@@ -400,7 +424,12 @@ class DifyPluginSecurityCheckEndpoint(Endpoint):
             if results is not None:
                 yield "<h3>Root directory files</h3>"
                 yield "<div style='margin: 10px; border: 1px solid black; padding: 10px'>"
-                for file in results:
+                # print file max 1000
+
+                for i, file in enumerate(results):
+                    if i > 1000:
+                        yield "<p style='color: darkgray'>Too many files, stopping...</p>"
+                        break
                     yield f"{file} <br>"
                 yield "</div>"
             else:
