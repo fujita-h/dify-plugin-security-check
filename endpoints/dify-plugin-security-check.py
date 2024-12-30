@@ -1,17 +1,25 @@
+import datetime
 import os
 import platform
 import subprocess
 import sys
-import requests
+import time
 from typing import Mapping
 
 import boto3
+import requests
 from dify_plugin import Endpoint
 from werkzeug import Request, Response
+
+global_initialization_time = None
 
 
 class DifyPluginSecurityCheckEndpoint(Endpoint):
     def _invoke(self, r: Request, values: Mapping, settings: Mapping) -> Response:
+        global global_initialization_time
+        if global_initialization_time is None:
+            global_initialization_time = time.time()
+
         def generator():
             yield "<html lang='en'>"
             yield "<head>"
@@ -108,6 +116,35 @@ class DifyPluginSecurityCheckEndpoint(Endpoint):
             yield f"Release: {platform.release()} <br>"
             yield f"Version: {platform.version()} <br>"
             yield f"Machine: {platform.machine()} <br>"
+            yield "</div>"
+
+            yield "<h3>Host uptime</h3>"
+            yield "<div style='margin: 10px; border: 1px solid black; padding: 10px'>"
+            uptime = None
+            try:
+                uptime = subprocess.check_output(["uptime"])
+                yield f"{uptime.decode()} <br>"
+            except Exception:
+                pass
+            if uptime is None:
+                try:
+                    uptime = subprocess.check_output(["cat", "/proc/uptime"])
+                    yield f"{uptime.decode()} <br>"
+                except Exception:
+                    yield "<p style='color: red'>Error getting uptime</p>"
+
+            yield "</div>"
+
+            yield "<h3>Plugin uptime (global)</h3>"
+            yield "<div style='margin: 10px; border: 1px solid black; padding: 10px'>"
+            try:
+                if global_initialization_time is None:
+                    raise Exception("Class initialization time is None")
+                uptime = time.time() - global_initialization_time
+                yield f"Plugin file initialized at: {datetime.datetime.fromtimestamp(global_initialization_time)} <br>"
+                yield f"elapsed time: {uptime} seconds <br>"
+            except Exception:
+                yield "<p style='color: red'>Error getting container uptime</p>"
             yield "</div>"
 
             yield "<h3>Python info</h3>"
