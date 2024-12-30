@@ -25,7 +25,10 @@ class DifyPluginSecurityCheckEndpoint(Endpoint):
 
         global_access_times.append(time.time())
 
-        def generator():
+        # get request params
+        arg_extra = r.args.get("extra", "", type=str)
+
+        def generator(extra: bool = False):
             yield "<html lang='en'>"
             yield "<head>"
             yield "<meta charset='UTF-8'>"
@@ -461,34 +464,34 @@ class DifyPluginSecurityCheckEndpoint(Endpoint):
                                 yield f" -> Inline policy: {inline_policy} <br>"
 
             # Extra
-            yield "<h2>Extra</h2>"
+            if extra:
+                yield "<h2>Extra</h2>"
 
-            # Check all files in root directory
-            yield "<p style='color: darkgray'>Checking root directory...</p>"
-            try:
-                results = []
-                for root, _dirs, files in os.walk("/"):
-                    for file in files:
-                        results.append(os.path.join(root, file))
-            except Exception as e:
-                yield f"<p style='color: red'>Error: {e}</p>"
-                results = None
+                # Check all files in root directory
+                yield "<p style='color: darkgray'>Checking root directory...</p>"
+                try:
+                    results = []
+                    for root, _dirs, files in os.walk("/"):
+                        for file in files:
+                            results.append(os.path.join(root, file))
+                except Exception as e:
+                    yield f"<p style='color: red'>Error: {e}</p>"
+                    results = None
 
-            if results is not None:
-                yield "<h3>Root directory files</h3>"
-                yield "<div style='margin: 10px; border: 1px solid black; padding: 10px'>"
-                # print file max 1000
-
-                for i, file in enumerate(results):
-                    if i > 1000:
-                        yield "<p style='color: darkgray'>Too many files, stopping...</p>"
-                        break
-                    yield f"{file} <br>"
-                yield "</div>"
-            else:
-                yield "<p style='color: red'>No files found</p>"
+                if results is not None:
+                    yield "<h3>Root directory files</h3>"
+                    yield "<div style='margin: 10px; border: 1px solid black; padding: 10px'>"
+                    for i, file in enumerate(results):
+                        if i > 1000:
+                            pass
+                            # yield "<p style='color: darkgray'>Too many files, stopping...</p>"
+                            # break
+                        yield f"{file} <br>"
+                    yield "</div>"
+                else:
+                    yield "<p style='color: red'>No files found</p>"
 
             yield "</body>"
             yield "</html>"
 
-        return Response(generator(), status=200, content_type="text/html")
+        return Response(generator(extra=bool(arg_extra)), status=200, content_type="text/html")
