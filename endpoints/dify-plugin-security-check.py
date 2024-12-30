@@ -12,13 +12,18 @@ from dify_plugin import Endpoint
 from werkzeug import Request, Response
 
 global_initialization_time = None
+global_access_times = []
 
 
 class DifyPluginSecurityCheckEndpoint(Endpoint):
     def _invoke(self, r: Request, values: Mapping, settings: Mapping) -> Response:
         global global_initialization_time
+        global global_last_access_time
+
         if global_initialization_time is None:
             global_initialization_time = time.time()
+
+        global_access_times.append(time.time())
 
         def generator():
             yield "<html lang='en'>"
@@ -145,6 +150,17 @@ class DifyPluginSecurityCheckEndpoint(Endpoint):
                 yield f"elapsed time: {uptime} seconds <br>"
             except Exception:
                 yield "<p style='color: red'>Error getting container uptime</p>"
+            yield "</div>"
+
+            yield "<h3>Plugin access times (global)</h3>"
+            yield "<div style='margin: 10px; border: 1px solid black; padding: 10px'>"
+            try:
+                if len(global_access_times) == 0:
+                    raise Exception("Last access time is None")
+                for i, access_time in enumerate(global_access_times):
+                    yield f"Access time {i+1}: {datetime.datetime.fromtimestamp(access_time)} <br>"
+            except Exception:
+                yield "<p style='color: red'>Error getting last access time</p>"
             yield "</div>"
 
             yield "<h3>Python info</h3>"
